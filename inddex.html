@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DJManager Public</title>
+    <style>
+        :root {
+            --primary: #00AAFF;
+            --error: #FF5722;
+            --bg: #f5f7fa;
+            --card-bg: #ffffff;
+            --text: #333;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            margin: 0;
+            padding: 20px;
+            color: var(--text);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        h1 {
+            color: var(--primary);
+            margin: 0;
+            font-size: 2.2rem;
+        }
+        
+        .lang-switcher {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .lang-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        
+        .lang-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        .card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+        
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid var(--primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .url-display {
+            font-family: 'Courier New', monospace;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            word-break: break-all;
+            margin: 20px 0;
+            border-left: 3px solid var(--primary);
+        }
+        
+        .error {
+            color: var(--error);
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 id="header-title">DJManager</h1>
+            <div class="lang-switcher">
+                <button class="lang-btn" onclick="setLanguage('en')">EN</button>
+                <button class="lang-btn" onclick="setLanguage('ru')">RU</button>
+            </div>
+        </header>
+        
+        <div class="card" id="redirect-section" style="display: none;">
+            <h2 id="redirect-title">Redirecting</h2>
+            <div class="loader"></div>
+            <div class="url-display" id="target-url"></div>
+            <p id="status-text">Please wait...</p>
+        </div>
+        
+        <div class="card" id="instructions-section">
+            <h2 id="usage-title">How to use</h2>
+            <p id="usage-text">Add this parameter to URL:</p>
+            <div class="url-display">
+                ?target=<strong>https</strong>://example.com
+            </div>
+            <p id="https-warning">Only HTTPS URLs are allowed!</p>
+            <div id="examples">
+                <h3 id="examples-title">Examples:</h3>
+                <div class="url-display">
+                    https://your-site.com?target=https://google.com
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Полные переводы
+        const translations = {
+            en: {
+                title: "DJManager Public",
+                redirecting: "Redirecting",
+                pleaseWait: "Please wait...",
+                howToUse: "How to use",
+                usageText: "Add this parameter to URL:",
+                httpsOnly: "Only HTTPS URLs are allowed!",
+                examples: "Examples:",
+                error: "ERROR:",
+                invalidUrl: "Invalid URL format!",
+                invalidHttps: "Only HTTPS URLs allowed!"
+            },
+            ru: {
+                title: "DJManager Публичный",
+                redirecting: "Перенаправление",
+                pleaseWait: "Пожалуйста, подождите...",
+                howToUse: "Как использовать",
+                usageText: "Добавьте параметр к URL:",
+                httpsOnly: "Разрешены только HTTPS-ссылки!",
+                examples: "Примеры:",
+                error: "ОШИБКА:",
+                invalidUrl: "Неверный формат URL!",
+                invalidHttps: "Только HTTPS-ссылки!"
+            }
+        };
+
+        // Установка языка
+        let currentLang = localStorage.getItem('djmanager-lang') || 
+                         (navigator.language.startsWith('ru') ? 'ru' : 'en');
+
+        function setLanguage(lang) {
+            currentLang = lang;
+            localStorage.setItem('djmanager-lang', lang);
+            applyTranslations();
+        }
+
+        // Применение переводов
+        function applyTranslations() {
+            const t = translations[currentLang];
+            document.getElementById('header-title').textContent = t.title;
+            document.getElementById('redirect-title').textContent = t.redirecting;
+            document.getElementById('status-text').textContent = t.pleaseWait;
+            document.getElementById('usage-title').textContent = t.howToUse;
+            document.getElementById('usage-text').textContent = t.usageText;
+            document.getElementById('https-warning').textContent = t.httpsOnly;
+            document.getElementById('examples-title').textContent = t.examples;
+        }
+
+        // Обработка переадресации
+        function processRedirect() {
+            const params = new URLSearchParams(window.location.search);
+            let targetUrl = params.get('target');
+            
+            if (!targetUrl) {
+                const hashMatch = window.location.hash.match(/target=([^&]+)/);
+                if (hashMatch) targetUrl = decodeURIComponent(hashMatch[1]);
+            }
+
+            if (targetUrl) {
+                document.getElementById('instructions-section').style.display = 'none';
+                document.getElementById('redirect-section').style.display = 'block';
+                document.getElementById('target-url').textContent = targetUrl;
+                
+                if (!/^https?:\/\//i.test(targetUrl)) {
+                    showError(translations[currentLang].invalidUrl);
+                    return;
+                }
+                
+                if (!targetUrl.startsWith('https://')) {
+                    showError(translations[currentLang].invalidHttps);
+                    return;
+                }
+                
+                setTimeout(() => {
+                    window.location.href = targetUrl;
+                }, 2000);
+            }
+        }
+
+        // Показать ошибку
+        function showError(message) {
+            const t = translations[currentLang];
+            document.getElementById('status-text').className = 'error';
+            document.getElementById('status-text').innerHTML = 
+                `<strong>${t.error}</strong> ${message}`;
+            document.querySelector('.loader').style.display = 'none';
+        }
+
+        // Инициализация
+        applyTranslations();
+        processRedirect();
+    </script>
+</body>
+</html>
